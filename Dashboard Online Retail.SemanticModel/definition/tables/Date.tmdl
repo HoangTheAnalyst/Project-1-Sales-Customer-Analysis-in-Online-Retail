@@ -1,0 +1,104 @@
+table Date
+	lineageTag: a1d0bc45-6121-44d9-ac21-fbdedbdf4bd6
+	dataCategory: Time
+
+	column Date
+		isKey
+		formatString: Short Date
+		lineageTag: 8a0a3335-16db-4f6b-aa8a-e5baa7082d0e
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Date]
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column Year = YEAR('Date'[Date])
+		formatString: 0
+		lineageTag: 14d905cf-eee9-4237-b9a1-453a23ed6dd6
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column Quarter = QUARTER('Date'[Date])
+		formatString: 0
+		lineageTag: 5c3f152b-c140-4aa9-89d6-d8c55d830450
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column QuaterName = "Q" & QUARTER('Date'[Date])
+		lineageTag: 6a60a085-9d6c-40e7-ab4f-8ec25bc15e54
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column Month = MONTH('Date'[Date])
+		formatString: 0
+		lineageTag: 02678006-efaf-40b8-88b1-aa2113fc7f6a
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column Month_Name = FORMAT('Date'[Date],"MMM")
+		lineageTag: 60d4990a-2b39-4981-826f-c192409413f7
+		summarizeBy: none
+		sortByColumn: Month
+
+		annotation SummarizationSetBy = Automatic
+
+	column Weekday = WEEKDAY('Date'[Date])
+		formatString: 0
+		lineageTag: 558d98b2-8101-4863-9add-26e27f5ee1b2
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column Day = DAY('Date'[Date])
+		formatString: 0
+		lineageTag: 43def9e6-63c8-4ed0-aeab-42acd7a032e8
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Day Name' = FORMAT('Date'[Date],"DDD")
+		lineageTag: dcbdb76e-e0b9-4c09-b897-b0c96666cfdd
+		summarizeBy: none
+		sortByColumn: Weekday
+
+		annotation SummarizationSetBy = Automatic
+
+	column YearMonth = FORMAT('Date'[Date],"YYYY-MM")
+		lineageTag: 2da9d783-2cbc-474a-afee-c018e1cce7ae
+		summarizeBy: none
+		sortByColumn: YearMonth_Sort
+
+		annotation SummarizationSetBy = Automatic
+
+	column YearMonth_Sort = 'Date'[Year] * 100 + 'Date'[Month]
+		formatString: 0
+		lineageTag: 12e34e6a-7786-4813-9c83-5614e1f88d32
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Total Months Active' = ```
+			
+			VAR First_Date = MINX(RELATEDTABLE(fact_sales),fact_sales[InvoiceDate])
+			VAR Last_Date = MAX('fact_sales'[InvoiceDate])
+			RETURN 
+			DATEDIFF(First_Date,Last_Date,MONTH) + 1
+			```
+		formatString: 0
+		lineageTag: e7d932f5-a1e2-4366-864f-8c4d42d8ef1a
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Date = calculated
+		mode: import
+		source = CALENDAR(MIN(fact_sales[InvoiceDate]),MAX(fact_sales[InvoiceDate]))
+
+	annotation PBI_Id = 6d3b2c70b4744db6b413b13e49b37a54
+

@@ -1,0 +1,64 @@
+table dim_stock
+	lineageTag: c3f15cc9-605c-4d39-9b53-0e202ab93964
+
+	column Product-SKU
+		dataType: string
+		lineageTag: 2ecbb53f-730b-44d7-9171-75a404ffa154
+		summarizeBy: none
+		sourceColumn: Product-SKU
+
+		annotation SummarizationSetBy = Automatic
+
+	column StockCode
+		dataType: string
+		lineageTag: 2187dcde-80e8-4182-9b49-25b11b6c2b16
+		summarizeBy: none
+		sourceColumn: StockCode
+
+		annotation SummarizationSetBy = Automatic
+
+	column ProductVariant
+		dataType: string
+		lineageTag: 269a5b97-581b-4137-bfb1-e79f2a8123f1
+		summarizeBy: none
+		sourceColumn: ProductVariant
+
+		annotation SummarizationSetBy = Automatic
+
+	column Description
+		dataType: string
+		lineageTag: 178d3a80-3a21-4423-9e16-faae3cc71046
+		summarizeBy: none
+		sourceColumn: Description
+
+		annotation SummarizationSetBy = Automatic
+
+	column Count_Quantity_Product =
+			
+			VAR Quantity_Product = CALCULATE(
+			    SUM(fact_sales[Quantity])
+			)
+			RETURN IF(Quantity_Product > 15000, Quantity_Product,BLANK())
+		formatString: 0
+		lineageTag: e0eece0d-5583-4086-8575-bd4d2d321cb9
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_stock = m
+		mode: import
+		queryGroup: main
+		source =
+				let
+				    Source = OnlineRetail,
+				    #"Removed Other Columns" = Table.SelectColumns(Source,{"StockCode", "ProductVariant", "Description"}),
+				    #"Removed Duplicates" = Table.Distinct(#"Removed Other Columns", {"StockCode", "ProductVariant"}),
+				    #"Added Custom" = Table.AddColumn(#"Removed Duplicates", "Product-SKU", each [StockCode] & "-" &[ProductVariant]),
+				    #"Reordered Columns" = Table.ReorderColumns(#"Added Custom",{"Product-SKU", "StockCode", "ProductVariant", "Description"})
+				in
+				    #"Reordered Columns"
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

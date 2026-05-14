@@ -1,0 +1,287 @@
+table Measure_Table
+	lineageTag: f258756e-bc30-4c63-ab73-60c50a5f42ee
+
+	/// Tổng doanh thu từ tất cả đơn hàng
+	measure 'Total Revenue' = SUM(fact_sales[Revenue])
+		formatString: #,##0.00
+		lineageTag: 0fc8d755-4d1b-4661-977d-f83b92cd036b
+
+	/// Tổng số lượng đơn hàng thành công
+	measure 'Total Orders' =
+			CALCULATE(
+			    DISTINCTCOUNT(fact_sales[InvoiceNo]),
+			    fact_sales[Quantity] > 0
+			)
+		formatString: #,##0
+		lineageTag: 564c4ecb-85e7-4df8-a6fc-e7e92bf946a6
+
+	/// Giá trị trung bình mỗi đơn hàng
+	measure AOV = DIVIDE([Total Revenue],[Total Orders],0)
+		formatString: #,##0.00
+		lineageTag: ce20de4c-7e0c-462d-8fab-9dda61b8e1df
+
+	/// Tỉ lệ % đơn hàng có hoàn/trả
+	measure 'Return Rate (by Revenue)' = ```
+			
+			VAR Total_Sales = 
+			    CALCULATE(
+			        SUM(fact_sales[Revenue]), 
+			        fact_sales[Quantity] > 0, 
+			        REMOVEFILTERS(fact_sales[Quantity])
+			    )
+			VAR Total_Returns = 
+			    CALCULATE(
+			        ABS(SUM(fact_sales[Revenue])), 
+			        fact_sales[Quantity] < 0, 
+			        REMOVEFILTERS(fact_sales[Quantity])
+			    )
+			RETURN 
+			    DIVIDE(Total_Returns, Total_Sales, 0)
+			```
+		formatString: 0.00%;-0.00%;0.00%
+		lineageTag: c5b66d39-4488-4eae-8317-fd72a0bcc1f8
+
+	/// Doanh thu từ đầu năm đến nay
+	measure YTD = CALCULATE([Total Revenue], DATESYTD('Date'[Date]))
+		formatString: #,##0.00
+		lineageTag: 05ce103b-c498-4179-988d-7ed0ec4b25d2
+
+	/// Tổng khách hàng registered (không GUEST)
+	measure 'Total Customers' = CALCULATE(DISTINCTCOUNT('dim_customer'[NCustomerID]))
+		formatString: 0.00
+		lineageTag: 38c1f984-0999-46ea-9af9-ee558444706f
+
+	/// Recency trung bình (ngày)
+	measure 'Average Recency' = CALCULATE(AVERAGE('dim_customer'[Customer_Recency_Days]), FILTER('dim_customer', LEFT('dim_customer'[NCustomerID], 6) <> "GUEST_"))
+		formatString: #,##0
+		lineageTag: 927622dd-0fe5-4e3c-9280-70b7f8720b0c
+
+	/// % khách Champions
+	measure '% Champions' = ```
+			
+			VAR champions_count = 
+			    CALCULATE(
+			        DISTINCTCOUNT('dim_customer'[NCustomerID]), 
+			        'dim_customer'[RFM_Segment] = "Champions"
+			    )
+			VAR total_customers_all = 
+			    CALCULATE(
+			        [Total Customers], 
+			        ALL('dim_customer')
+			    )
+			RETURN 
+			    DIVIDE(champions_count, total_customers_all, 0)
+			```
+		formatString: 0.00%;-0.00%;0.00%
+		lineageTag: bc974ccc-1997-44d1-a320-9e84371cc640
+
+	/// % khách At Risk
+	measure '% At Risk' =
+			
+			VAR at_risk_count = CALCULATE(DISTINCTCOUNT('dim_customer'[NCustomerID]), 'dim_customer'[RFM_Segment] = "At Risk")
+			VAR total_customer = CALCULATE([Total Customers],ALL('dim_customer'))
+			RETURN DIVIDE(at_risk_count,total_customer,0)
+		formatString: 0.00%;-0.00%;0.00%
+		lineageTag: 3230b775-c01e-4437-bab5-1f4f67a89234
+
+	measure 'Retention Rate %' =
+			
+			VAR Customer_Now = DISTINCTCOUNT(fact_sales[CustomerID])
+			VAR Customer_Base_Month = CALCULATE(
+			    DISTINCTCOUNT(fact_sales[CustomerID]),
+			    ALL(fact_sales[Month_Index]),
+			    fact_sales[Month_Index] = 0
+			)
+			RETURN DIVIDE(Customer_Now,Customer_Base_Month,0)
+		lineageTag: 35850a17-9870-4861-a021-4636a8323bc7
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Cumulative LTV' = ```
+			
+			VAR Customers_Base_Month = 
+			    CALCULATE(
+			        DISTINCTCOUNT('fact_sales'[CustomerID]),
+			        ALL('fact_sales'[Month_Index]),
+			        'fact_sales'[Month_Index] = 0
+			    )
+			VAR Cumulative_Revenue = 
+			    CALCULATE(
+			        SUM('fact_sales'[Revenue]),
+			        FILTER(
+			            ALL('fact_sales'[Month_Index]),
+			            'fact_sales'[Month_Index] <= MAX('fact_sales'[Month_Index])
+			        )
+			    )
+			RETURN 
+			    DIVIDE(Cumulative_Revenue, Customers_Base_Month, 0)
+			```
+		lineageTag: 5bb8cafc-972f-431e-b9bd-8d082123bd45
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'New Customers' =
+			CALCULATE(
+			    DISTINCTCOUNT(fact_sales[CustomerID]),
+			    ALL(fact_sales[Customer_Status_Type]),
+			    fact_sales[Customer_Status_Type] = "New Customer"
+			)
+		formatString: 0
+		lineageTag: 7302d0c4-7436-4582-95a0-bf86ef25d081
+
+	measure 'Returning Customers' =
+			CALCULATE(
+			    DISTINCTCOUNT(fact_sales[CustomerID]),
+			    ALL(fact_sales[Customer_Status_Type]),
+			    fact_sales[Customer_Status_Type] = "Returning Customer"
+			)
+		formatString: 0
+		lineageTag: 88fc25f0-39ce-4498-afb3-860c80adcc57
+
+	measure 'Retention Rate % (1 Month)' = ```
+			CALCULATE([Retention Rate %],ALL(fact_sales[Month_Index]),fact_sales[Month_Index]=1) 
+			```
+		lineageTag: 8bea82de-94eb-4409-945c-b26f50ad2813
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Total Customers (Without Guests)' = CALCULATE([Total Customers],ALL(dim_customer[TypeOfCustomers]),dim_customer[TypeOfCustomers]<>"Guests/Unknown")
+		formatString: 0
+		lineageTag: b90e7389-b439-4ca7-82e6-5285ea492d0a
+
+	measure 'Repeat Purchase Rate' = ```
+			
+			VAR Total_Real_Customers = 
+			    CALCULATE(
+			        DISTINCTCOUNT(fact_sales[CustomerID]), 
+			        fact_sales[Customer_Status_Type] <> "Guest"
+			    )
+			VAR Returning_Customers = 
+			    CALCULATE(
+			        DISTINCTCOUNT(fact_sales[CustomerID]), 
+			        fact_sales[Customer_Status_Type] = "Returning Customer"
+			    )
+			RETURN 
+			    DIVIDE(Returning_Customers, Total_Real_Customers, 0)
+			```
+		lineageTag: 621c1894-2bfa-4574-86c7-aeb835463953
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure Total_Rev_By_Members = CALCULATE([Total Revenue],LEFT(fact_sales[CustomerID],6) <> "GUEST_")
+		lineageTag: 13a75716-fa3b-4527-9432-0d71250c429b
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Avg. CLV' = [Total_Rev_By_Members]/[Total Customers (Without Guests)]
+		lineageTag: d2637db3-4132-4803-a277-016e21891399
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Return Rate (by Orders)' = ```
+			
+			VAR Total_Success_Invoices = 
+			    CALCULATE(
+			        DISTINCTCOUNT(fact_sales[InvoiceNo]), 
+			        fact_sales[Quantity] > 0,
+			        REMOVEFILTERS(fact_sales[Quantity]) 
+			    )
+			VAR Total_Canceled_Invoices = 
+			    CALCULATE(
+			        DISTINCTCOUNT(fact_sales[InvoiceNo]), 
+			        fact_sales[Quantity] < 0,
+			        REMOVEFILTERS(fact_sales[Quantity])
+			    )
+			RETURN 
+			    DIVIDE(Total_Canceled_Invoices, Total_Success_Invoices, 0)
+			```
+		formatString: 0.00%;-0.00%;0.00%
+		lineageTag: 34610f96-1328-4582-8ccb-242075594067
+
+	measure 'Avg. Items per Basket' =
+			
+			CALCULATE(
+			    DIVIDE(
+			        COUNT(fact_sales[InvoiceNo]),
+			        DISTINCTCOUNT(fact_sales[InvoiceNo]),
+			        0
+			    ),
+			    fact_sales[Quantity] > 0
+			)
+		lineageTag: cfb72604-b779-4f8c-b1b0-6f22c9d81fee
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Total Orders Success' =
+			
+			CALCULATE(
+			    DISTINCTCOUNT(fact_sales[InvoiceNo]),
+			    ALL(fact_sales),
+			    fact_sales[Quantity] > 0
+			)
+		formatString: 0
+		lineageTag: 0534a019-3956-491c-8d7a-431f9fe251da
+
+	measure 'Basket Penetration %' = ```
+			
+			VAR AllInvoices = SUMMARIZE(
+			    'fact_sales', 
+			    'fact_sales'[InvoiceNo], 
+			    "ItemCount", DISTINCTCOUNT('fact_sales'[Product-SKU])
+			)
+			VAR TotalInvoices = COUNTROWS(AllInvoices)
+			VAR MultiItemInvoices = COUNTROWS(
+			    FILTER(AllInvoices, [ItemCount] >= 2)
+			)
+			RETURN (MultiItemInvoices / TotalInvoices) * 100
+			```
+		lineageTag: 533f308c-043b-4db1-8cc6-84724ca5903f
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Cross-sell Opportunity Count' = COUNTROWS(MBA)/2
+		lineageTag: 271a376f-59ba-4f44-9fbe-2e095dc66a5e
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Customer Life Time Month' = AVERAGE(dim_customer[Customer_Lifetime_Month])
+		lineageTag: 90fa36f3-9ed6-4e8f-87d3-3683a4a7a0dc
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'LTV Expected 1Y (Filtered)' = ```
+			
+			VAR MonthsActive = [Customer Life Time Month]
+			VAR AvgOrderValue = DIVIDE([Total Revenue], [Total Orders], 0)
+			VAR YearlyFrequency = DIVIDE([Total Orders], MonthsActive, 0) * 12
+			VAR Churn = 1 - [Retention Rate %]
+			VAR ExpectedValue = (AvgOrderValue * YearlyFrequency) * (1 - Churn)
+			
+			RETURN
+			    IF(
+			        MonthsActive >= 3, 
+			        ExpectedValue, 
+			        BLANK()
+			    )
+			```
+		lineageTag: ae42fc6e-fec5-4a54-9864-70b2a3b04bc6
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Column
+		formatString: 0
+		lineageTag: 6f9fc5f8-882f-4aff-a6b0-2e436438cbab
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Column]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Measure_Table = calculated
+		mode: import
+		source = Row("Column", BLANK())
+
+	annotation PBI_Id = c9feba1f433747db88a9ef5bb7d9763a
+
+	annotation 436ba87b-9c83-4389-a31b-ebd06a36be98 = {"Expression":""}
+
