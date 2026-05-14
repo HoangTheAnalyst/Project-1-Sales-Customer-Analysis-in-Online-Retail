@@ -1,0 +1,36 @@
+model Model
+	culture: en-US
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: en-US
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+queryGroup main
+
+	annotation PBI_QueryGroupOrder = 1
+
+queryGroup root
+
+	annotation PBI_QueryGroupOrder = 0
+
+annotation __PBI_TimeIntelligenceEnabled = 1
+
+annotation PBI_QueryOrder = ["Online Retail Root","OnlineRetail","MBA","dim_stock","dim_customer","fact_sales"]
+
+annotation PBI_ProTooling = ["MCP-PBIModeling","DevMode"]
+
+ref table dim_stock
+ref table dim_customer
+ref table fact_sales
+ref table Date
+ref table Measure_Table
+ref table DateTableTemplate_ee97b400-8259-4279-8741-61a1d53e4bf8
+ref table LocalDateTable_db8497a2-868e-4b98-a0b8-722c0d114105
+ref table LocalDateTable_65161598-3c73-4142-a7be-fb87bae7e947
+ref table LocalDateTable_994e232c-4182-43eb-8097-037bf554fdd1
+ref table LocalDateTable_8a5034f4-0f18-4983-8f03-2940bee11bc7
+ref table MBA
+
+ref cultureInfo en-US
+
